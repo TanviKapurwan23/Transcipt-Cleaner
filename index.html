@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transcript Cleaner</title>
+<style>
+:root{--bg:#f6f7fb;--card:#fff;--ink:#171923;--muted:#687083;--line:#e4e7ef;--accent:#6558e8;--accent2:#5145d0}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(135deg,#f6f7fb,#eeedff);font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif;color:var(--ink);min-height:100vh}
+main{max-width:1050px;margin:0 auto;padding:54px 22px 70px}.hero{text-align:center;margin-bottom:30px}.eyebrow{display:inline-block;color:var(--accent);font-weight:750;letter-spacing:.12em;font-size:12px;text-transform:uppercase;background:#eceaff;padding:8px 12px;border-radius:99px}
+h1{font-size:clamp(34px,6vw,54px);letter-spacing:-.045em;margin:16px 0 10px}.sub{color:var(--muted);font-size:16px;line-height:1.6;margin:0 auto;max-width:620px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:24px;box-shadow:0 16px 50px #29205a0d}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.field-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-weight:700;font-size:14px}.hint{font-size:12px;color:var(--muted);font-weight:500}
+textarea{width:100%;height:330px;resize:vertical;border:1px solid var(--line);border-radius:14px;padding:16px;font:14px/1.65 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink);outline:none;background:#fcfcfe}
+textarea:focus{border-color:#9b93f2;box-shadow:0 0 0 3px #6558e81a}textarea::placeholder{color:#a2a7b4}
+.controls{display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin:18px 0 20px}.check{display:flex;gap:8px;align-items:center;color:#555d70;font-size:13px}.check input{accent-color:var(--accent)}
+button{border:0;border-radius:11px;padding:12px 17px;font-weight:700;font-size:14px;cursor:pointer;transition:.15s}button:hover{transform:translateY(-1px)}.primary{background:var(--accent);color:white}.primary:hover{background:var(--accent2)}.secondary{background:#f0efff;color:#5145c9}.plain{background:#f4f5f8;color:#555d70}
+.actions{display:flex;gap:9px;flex-wrap:wrap}.status{margin-left:auto;color:var(--muted);font-size:12px}
+footer{text-align:center;color:#858b9b;font-size:12px;margin-top:22px}
+@media(max-width:760px){main{padding:34px 14px}.grid{grid-template-columns:1fr}.panel{padding:16px}textarea{height:240px}.status{width:100%;margin-left:0}}
+</style>
+</head>
+<body>
+<main>
+  <header class="hero">
+    <span class="eyebrow">Free mini tool</span>
+    <h1>Transcript Cleaner</h1>
+    <p class="sub">Turn messy YouTube transcripts into clean, readable text. Paste your transcript, remove timestamps, and copy or download the result.</p>
+  </header>
+  <section class="panel">
+    <div class="grid">
+      <div>
+        <div class="field-head"><label for="source">Your transcript</label><span class="hint" id="inputCount">0 characters</span></div>
+        <textarea id="source" placeholder="Paste your YouTube transcript here…
+
+00:00 Hello everyone
+00:05 Welcome back to my channel
+00:12 Today we're learning something new"></textarea>
+      </div>
+      <div>
+        <div class="field-head"><label for="result">Clean transcript</label><span class="hint" id="outputCount">0 characters</span></div>
+        <textarea id="result" placeholder="Your cleaned transcript will appear here…" readonly></textarea>
+      </div>
+    </div>
+    <div class="controls">
+      <label class="check"><input type="checkbox" id="removeCues" checked> Remove [Music] and [Applause]</label>
+      <label class="check"><input type="checkbox" id="removeBlank"> Remove extra blank lines</label>
+      <span class="status" id="status" aria-live="polite">Your text stays in this browser.</span>
+    </div>
+    <div class="actions">
+      <button class="primary" id="clean">✨ Remove timestamps</button>
+      <button class="secondary" id="copy">Copy text</button>
+      <button class="secondary" id="download">Download .txt</button>
+      <button class="plain" id="clear">Clear</button>
+    </div>
+  </section>
+  <footer>No sign-up. No upload. Text is processed locally in your browser.</footer>
+</main>
+<script>
+const source=document.querySelector('#source'), result=document.querySelector('#result');
+const inputCount=document.querySelector('#inputCount'), outputCount=document.querySelector('#outputCount'), status=document.querySelector('#status');
+function counts(){inputCount.textContent=source.value.length.toLocaleString()+' characters';outputCount.textContent=result.value.length.toLocaleString()+' characters'}
+function cleanTranscript(text){
+  let s=text.replace(/\r\n?/g,'\n');
+  // Remove timestamp-only lines in formats such as 1:04, 00:01:04,
+  // "1 minute, 4 seconds", "1 min 4 sec", or "4 seconds".
+  s=s.replace(/^\s*(?:[\[(]?\d{1,2}:\d{2}(?::\d{2})?[\])]?|\d+\s+minutes?(?:\s*,\s*|\s+)\d+\s+seconds?|\d+\s+mins?(?:\s*,\s*|\s+)\d+\s+secs?|\d+\s+seconds?)\s*$/gim,'');
+  // Also remove clock-style timestamps appearing inline.
+  s=s.replace(/(?:^|\s)[\[(]?\d{1,2}:\d{2}(?::\d{2})?[\])]?\s*/g,' ');
+  if(document.querySelector('#removeCues').checked){
+    s=s.replace(/\[(?:music|applause|laughter|inaudible|cheering|音楽)\]/gi,'');
+  }
+  if(document.querySelector('#removeBlank').checked){
+    s=s.split('\n').map(x=>x.trim()).filter(Boolean).join('\n');
+  }else{
+    s=s.split('\n').map(x=>x.replace(/[ \t]+/g,' ').trim()).join('\n').replace(/\n{3,}/g,'\n\n');
+  }
+  return s.trim();
+}
+source.addEventListener('input',counts);
+document.querySelector('#clean').addEventListener('click',()=>{result.value=cleanTranscript(source.value);counts();status.textContent='Timestamps removed. Ready to copy!'});
+document.querySelector('#copy').addEventListener('click',async()=>{if(!result.value){status.textContent='Clean a transcript first.';return}try{await navigator.clipboard.writeText(result.value);status.textContent='Copied to clipboard!'}catch(e){result.focus();result.select();status.textContent='Select the text and copy it.'}});
+document.querySelector('#download').addEventListener('click',()=>{if(!result.value){status.textContent='Clean a transcript first.';return}const blob=new Blob([result.value],{type:'text/plain;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='clean-transcript.txt';a.click();URL.revokeObjectURL(url);status.textContent='Downloaded clean-transcript.txt'});
+document.querySelector('#clear').addEventListener('click',()=>{source.value='';result.value='';counts();status.textContent='Cleared. Paste a new transcript.';source.focus()});
+counts();
+</script>
+</body>
+</html>
